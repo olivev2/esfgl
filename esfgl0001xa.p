@@ -143,6 +143,9 @@ DEF VAR l-moed-ifrs-1       AS LOG NO-UNDO.
 
 def var v-log-verif-ct-sdo as log no-undo.
 
+def var i-seq-destino as integer no-undo.
+def var v-log-file as char no-undo initial "c:\temp\xa_seq_trace.log".
+
 def var h-acomp as handle no-undo.
 
 for each tt_aprop_lancto_ctbl_aux2:
@@ -231,6 +234,20 @@ return "OK":U.
 
 procedure pi-gerar:
 
+	/*put unformatted
+		"PI-GERAR|seq=" movto-ctbl-ce.sequencia
+		"|ge=" movto-ctbl-ce.ge-codigo
+		"|dt=" string(movto-ctbl-ce.dt-trans,"99/99/9999")
+		"|est=" movto-ctbl-ce.cod-estabel
+		"|dep=" movto-ctbl-ce.cod-depos
+		"|un=" movto-ctbl-ce.cod-unid-negoc
+		"|esp=" movto-ctbl-ce.esp-docto
+		"|trans=" movto-ctbl-ce.transacao
+		"|cta=" movto-ctbl-ce.cod-cta
+		"|cc=" movto-ctbl-ce.cod-ccusto
+		"|numid=" movto-ctbl-ce.num-id-movto-ctbl-ce skip.
+	output close.*/
+
     for first estabelec
        fields(cod-estabel
               ct-icm
@@ -259,7 +276,10 @@ procedure pi-gerar:
                  and movto-estoq.cod-unid-negoc-sdo = movto-ctbl-ce.cod-unid-negoc
                  and movto-estoq.cod-depos          = movto-ctbl-ce.cod-depos
                  and movto-estoq.esp-docto          = movto-ctbl-ce.esp-docto
-                 and movto-estoq.tipo-trans         = movto-ctbl-ce.transacao:
+                 and movto-estoq.tipo-trans         = movto-ctbl-ce.transacao
+                 and movto-estoq.contabilizado      = yes
+                 and movto-estoq.dt-contab          = movto-ctbl-ce.dt-trans
+                 and movto-estoq.refer-contab       = movto-ctbl-ce.referencia:
             /*   first item                                                            */
             /*  fields(it-codigo                                                       */
             /*         ge-codigo                                                       */
@@ -279,6 +299,22 @@ procedure pi-gerar:
                        de-valor-fasb = 0
                        de-valor-cmi  = 0
                        l-movto-estoq = yes.
+
+				output to value(v-log-file) append.
+				put unformatted
+					"CALL-SALDO[A]|seq_origem=" movto-ctbl-ce.sequencia
+					"|mov_nr_trans=" movto-estoq.nr-trans
+					"|doc=" movto-estoq.nro-docto
+					"|serie=" movto-estoq.serie-docto
+					"|emit=" movto-estoq.cod-emitente
+					"|nat=" movto-estoq.nat-operacao
+					"|esp=" movto-estoq.esp-docto
+					"|tipo=" movto-estoq.tipo-trans
+					"|it=" movto-estoq.it-codigo
+					"|p_cta=" movto-estoq.ct-saldo
+					"|p_cc=" movto-estoq.sc-saldo
+					"|p_un=" movto-estoq.cod-unid-negoc-sdo skip.
+				output close.
 
                 run pi-cria-tt-saldo (input movto-estoq.ct-saldo,
                                       input movto-estoq.sc-saldo,
@@ -315,6 +351,22 @@ procedure pi-gerar:
                        de-valor-fasb     = 0
                        de-valor-cmi      = 0
                        l-movto-estoq     = yes.
+
+				/*output to value(v-log-file) append.
+				put unformatted
+					"CALL-SALDO[B]|seq_origem=" movto-ctbl-ce.sequencia
+					"|mov_nr_trans=" movto-estoq.nr-trans
+					"|doc=" movto-estoq.nro-docto
+					"|serie=" movto-estoq.serie-docto
+					"|emit=" movto-estoq.cod-emitente
+					"|nat=" movto-estoq.nat-operacao
+					"|esp=" movto-estoq.esp-docto
+					"|tipo=" movto-estoq.tipo-trans
+					"|it=" movto-estoq.it-codigo
+					"|p_cta=" movto-estoq.ct-codigo
+					"|p_cc=" movto-estoq.sc-codigo
+					"|p_un=" movto-estoq.cod-unid-negoc skip.
+				output close.*/
 
                 if movto-estoq.ct-codigo = movto-ctbl-ce.cod-cta
                and movto-estoq.sc-codigo = movto-ctbl-ce.cod-ccusto then 
@@ -377,6 +429,28 @@ procedure pi-cria-tt-saldo:
     def var v_ind_natur as char no-undo.
     def var v_des_chave as char no-undo.
     def var v_val_aprop as dec  no-undo.
+	
+	assign i-seq-destino = movto-ctbl-ce.sequencia.
+
+	/*output to value(v-log-file) append.
+	put unformatted
+		"PI-SALDO|seq_origem=" movto-ctbl-ce.sequencia
+		"|seq_dest=" i-seq-destino
+		"|dt=" string(movto-estoq.dt-trans,"99/99/9999")
+		"|est=" movto-estoq.cod-estabel
+		"|dep=" movto-estoq.cod-depos
+		"|un=" p-cod-unid-negoc
+		"|esp=" movto-estoq.esp-docto
+		"|tipo=" movto-estoq.tipo-trans
+		"|nr_trans=" movto-estoq.nr-trans
+		"|it=" movto-estoq.it-codigo
+		"|doc=" movto-estoq.nro-docto
+		"|serie=" movto-estoq.serie-docto
+		"|emit=" movto-estoq.cod-emitente
+		"|nat=" movto-estoq.nat-operacao
+		"|p_cta=" p-cod-cta
+		"|p_cc=" p-cod-ccusto skip.
+	output close.*/
 
     find first tt-movto-ctbl-ce-new
          where tt-movto-ctbl-ce-new.cod-estabel    = movto-estoq.cod-estabel	
@@ -390,18 +464,28 @@ procedure pi-cria-tt-saldo:
            and tt-movto-ctbl-ce-new.esp-docto      = movto-estoq.esp-docto	
            and tt-movto-ctbl-ce-new.transacao      = movto-estoq.tipo-trans	
            and tt-movto-ctbl-ce-new.it-codigo      = movto-estoq.it-codigo
-		   and tt-movto-ctbl-ce-new.sequencia	   = movto-ctbl-ce.sequencia		   
+		   and tt-movto-ctbl-ce-new.sequencia	   = i-seq-destino		   
            and tt-movto-ctbl-ce-new.nro-docto      = movto-estoq.nro-docto	
            and tt-movto-ctbl-ce-new.cod-emitente   = movto-estoq.cod-emitente	
            and tt-movto-ctbl-ce-new.serie-docto    = movto-estoq.serie-docto	
            and tt-movto-ctbl-ce-new.nat-operacao   = movto-estoq.nat-operacao no-error.	
-
+	
+	/*output to value(v-log-file) append.
+	put unformatted
+		"FIND-TT|avail=" (if avail tt-movto-ctbl-ce-new then "Y" else "N")
+		(if avail tt-movto-ctbl-ce-new then
+			"|tt_seq=" + string(tt-movto-ctbl-ce-new.sequencia) +
+			"|tt_it=" + tt-movto-ctbl-ce-new.it-codigo +
+			"|tt_doc=" + tt-movto-ctbl-ce-new.nro-docto
+		 else "")
+		skip.
+	output close.*/
     
     if not avail tt-movto-ctbl-ce-new then do:
         create tt-movto-ctbl-ce-new.
         buffer-copy movto-ctbl-ce to tt-movto-ctbl-ce-new.
         assign tt-movto-ctbl-ce-new.it-codigo               = item.it-codigo
-		       tt-movto-ctbl-ce-new.sequencia				= movto-ctbl-ce.sequencia
+		       tt-movto-ctbl-ce-new.sequencia				= i-seq-destino
                tt-movto-ctbl-ce-new.nro-docto               = movto-estoq.nro-docto
                tt-movto-ctbl-ce-new.cod-emitente            = movto-estoq.cod-emitente
                tt-movto-ctbl-ce-new.serie-docto             = movto-estoq.serie-docto
@@ -418,6 +502,16 @@ procedure pi-cria-tt-saldo:
                tt-movto-ctbl-ce-new.numero-ordem            = movto-estoq.numero-ordem
                tt-movto-ctbl-ce-new.tta_cod_cta_ctbl_contra = movto-estoq.ct-saldo
                tt-movto-ctbl-ce-new.ge-codigo               = item.ge-codigo.
+
+				/*output to value(v-log-file) append.
+				put unformatted
+					"CREATE-TT|seq=" tt-movto-ctbl-ce-new.sequencia
+					"|it=" tt-movto-ctbl-ce-new.it-codigo
+					"|doc=" tt-movto-ctbl-ce-new.nro-docto
+					"|nr_trans=" tt-movto-ctbl-ce-new.nr-trans
+					"|cta=" tt-movto-ctbl-ce-new.cod-cta
+					"|cc=" tt-movto-ctbl-ce-new.cod-ccusto skip.
+				output close.*/
                
                if tt-movto-ctbl-ce-new.tta_cod_cta_ctbl = movto-estoq.ct-saldo then
                     assign tt-movto-ctbl-ce-new.tta_cod_cta_ctbl_contra = movto-estoq.ct-codigo.
