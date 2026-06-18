@@ -3,7 +3,7 @@ SESSION:DATE-FORMAT = "dmy".
 **
 **  Programa: ESFGL0001XRP.P
 **     Autor: TOTVS - DRG-SP-Campinas
-**  Objetivo: Relat¢rio RazÆo 
+**  Objetivo: Relatorio Razao 
 **    Versao: 1.00.00.000
 **      Data: 18/05/2016
 **
@@ -82,7 +82,7 @@ raw-transfer raw-param to tt-param.
 find param-global no-lock no-error.
 
 /*********************************************************************/
-def new global shared var v_cod_usuar_corren    as character format "x(12)":U label "Usuÿrio Corrente" column-label "Usuÿrio Corrente" no-undo.
+def new global shared var v_cod_usuar_corren    as character format "x(12)":U label "Usuÿrio Corrente" column-label "Usuario Corrente" no-undo.
 def new global shared var v_cod_empres_usuar    as character format "x(3)":U label "Empresa" column-label "Empresa" no-undo.
 def new global shared var v_hdl_func_padr_glob  as HANDLE format ">>>>>>9":U label "Fun‡äes Pad Glob" column-label "Fun‡äes Pad Glob" no-undo.
 
@@ -160,7 +160,8 @@ def new global shared temp-table tt_aprop_lancto_ctbl_aux2 no-undo
           ttv_des_chave_lancto             ascending.
 
 def temp-table tt_rpt_razao no-undo
-    field tta_cod_ccusto                   as Character format "x(11)" label "Centro Custo" column-label "Centro Custo"
+    field tta_nr_trans					   as integer 
+	field tta_cod_ccusto                   as Character format "x(11)" label "Centro Custo" column-label "Centro Custo"
     field tta_cod_plano_cta_ctbl           as character format "x(8)" label "Plano Contas" column-label "Plano Contas"
     field tta_cod_cta_ctbl                 as character format "x(20)" label "Conta Cont bil" column-label "Conta Cont bil"
     field tta_num_lote_ctbl                as integer   format ">>>,>>>,>>9" initial 1 label "Lote Cont bil" column-label "Lote Cont bil"
@@ -1090,13 +1091,15 @@ PROCEDURE pi_gera_tt_movto_ctbl_ce:
    FIND FIRST tt-movto-ctbl-ce NO-LOCK NO-ERROR.
    IF AVAIL tt-movto-ctbl-ce THEN
    DO:
-      FOR EACH tt-movto-ctbl-ce NO-LOCK WHERE tt-movto-ctbl-ce.valor-cont <> 0:  
+      FOR EACH tt-movto-ctbl-ce NO-LOCK WHERE tt-movto-ctbl-ce.valor-cont <> 0
+		BY tt-movto-ctbl-ce.nr-trans:  
 
           RUN pi-acompanhar IN h-acomp ("Movto_Ctbl_Ce " +  string(item_lancto_ctbl.dat_lancto_ctbl) + " " +                                                       
                                                             string(item_lancto_ctbl.num_lote_ctbl)).                                                  
                                                                                                                                             
           CREATE tt_rpt_razao.                                                                                                              
           ASSIGN tt_rpt_razao.tta_cod_ccusto                 = item_lancto_ctbl.cod_ccusto
+				 tt_rpt_razao.tta_nr_trans					 = tt-movto-ctbl-ce.nr-trans
                  tt_rpt_razao.tta_num_lote_ctbl              = item_lancto_ctbl.num_lote_ctbl                                               
                  tt_rpt_razao.tta_num_lancto_ctbl            = item_lancto_ctbl.num_lancto_ctbl                                             
                  tt_rpt_razao.tta_num_seq_lancto_ctbl        = item_lancto_ctbl.num_seq_lancto_ctbl                                         
@@ -2007,7 +2010,7 @@ find cta_ctbl NO-LOCK USE-INDEX ctactbl_id where
     then do:
 	
         assign v_val_sdo_ctbl_inic_ant = fnAjustDec(tt_sdo_ctbl.tta_val_sdo_ctbl_fim / v_val_cotac_indic_econ, v_cod_moed_finalid).
-		
+		message v_val_sdo_ctbl_inic_ant view-as ALERT-BOX. 
     delete tt_sdo_ctbl.
     END.
 
@@ -2573,6 +2576,8 @@ PROCEDURE Pi_Gera_Planilha:
           chExcelApplication:Cells(i-linha,i-coluna):Value = tt_rpt_razao.tta_des_histor_lancto_ctbl.  
           RUN Pi-I-Coluna.
           chExcelApplication:Cells(i-linha,i-coluna):Value = tt_rpt_razao.cod_cta_ctbl_contra_Lancto.
+		  RUN Pi-I-Coluna.
+		  chExcelApplication:Cells(i-linha,i-coluna):Value = tt_rpt_razao.tta_nr_trans.
                  
       END.
 
